@@ -2,9 +2,11 @@ import os
 import logging
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes
+from telegram.error import Conflict
 from urllib.parse import urlencode
 import psycopg2
 from psycopg2.extras import RealDictCursor
+import sys
 
 # Configuração de logging
 logging.basicConfig(
@@ -318,7 +320,22 @@ def main():
     application.add_handler(CommandHandler("dados", dados))
     
     logger.info("Bot iniciado!")
-    application.run_polling(allowed_updates=Update.ALL_TYPES)
+    
+    try:
+        application.run_polling(
+            allowed_updates=Update.ALL_TYPES,
+            drop_pending_updates=True,  # Limpar updates pendentes ao iniciar
+            close_loop=False
+        )
+    except Conflict as e:
+        logger.error(f"❌ CONFLITO: Outra instância do bot está rodando!")
+        logger.error(f"Erro: {e}")
+        logger.error("Por favor, verifique se há outro bot rodando e pare-o.")
+        logger.error("No Railway, verifique se há múltiplos serviços BOT rodando.")
+        sys.exit(1)
+    except Exception as e:
+        logger.error(f"Erro fatal: {e}")
+        sys.exit(1)
 
 if __name__ == '__main__':
     main()
